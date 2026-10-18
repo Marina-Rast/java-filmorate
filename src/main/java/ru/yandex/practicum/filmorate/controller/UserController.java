@@ -21,22 +21,10 @@ public class UserController {
 
     @PostMapping
     public User createUsers(@RequestBody User user) {
-        if (user.getEmail() == null || !user.getEmail().contains("@") || user.getEmail().isBlank()) {
-            log.warn("Ошибка валидации: электронная почта пустая или не содержит требующихся символов");
-            throw new ValidationException("электронная почта не может быть пустой и должна содержать символ @");
-        }
-        if (user.getLogin() == null || user.getLogin().contains(" ") || user.getLogin().isBlank()) {
-            log.warn("Ошибка валидации: неправильная запись пароля");
-            throw new ValidationException("логин не может быть пустым и содержать пробелы");
-        }
+        validate(user);
 
         if (user.getName() == null) {
             user.setName(user.getLogin());
-        }
-
-        if (user.getBirthday() != null && user.getBirthday().isAfter(LocalDate.now())) {
-            log.warn("Ошибка валидации: неправильно указана дата рождения");
-            throw new ValidationException("дата рождения не может быть в будущем");
         }
 
         user.setId(nextId++);
@@ -57,8 +45,28 @@ public class UserController {
             throw new ValidationException("Пользователь с id: " + newUser.getId() + "не найден");
         }
 
+        validate(newUser);
         users.put(newUser.getId(), newUser);
         log.info("Пользователь с id - " + newUser.getId() + "успешно обновлен");
         return newUser;
+    }
+
+    private void validate(User user) {
+        if (user.getEmail() == null || user.getEmail().isBlank()) {
+            log.warn("Ошибка валидации: электронная почта пустая");
+            throw new ValidationException("электронная почта не может быть пустой");
+        }
+        if (!user.getEmail().contains("@")) {
+            log.warn("Ошибка валидации: электронная почта не содержит @");
+            throw new ValidationException("электронная почта должна содержать символ @");
+        }
+        if (user.getLogin() == null || user.getLogin().isBlank() || user.getLogin().contains(" ")) {
+            log.warn("Ошибка валидации: неправильный логин");
+            throw new ValidationException("логин не может быть пустым и содержать пробелы");
+        }
+        if (user.getBirthday() != null && user.getBirthday().isAfter(LocalDate.now())) {
+            log.warn("Ошибка валидации: дата рождения в будущем");
+            throw new ValidationException("дата рождения не может быть в будущем");
+        }
     }
 }

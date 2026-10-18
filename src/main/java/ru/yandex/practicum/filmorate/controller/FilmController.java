@@ -18,9 +18,32 @@ public class FilmController {
     private final Map<Long, Film> films = new HashMap<>();
     private long nextId = 1;
     private static final Logger log = LoggerFactory.getLogger(FilmController.class);
+    private static final LocalDate MIN_RELEASE_DATE = LocalDate.of(1895, 12, 28);
 
     @PostMapping
     public Film addFilm(@RequestBody Film film) {
+        validate(film);
+        film.setId(nextId++);
+        films.put(film.getId(), film);
+        return film;
+    }
+
+    @PutMapping
+    public Film update(@RequestBody Film newFilm) {
+        if (!films.containsKey(newFilm.getId())) {
+            throw new RuntimeException("Фильм не найден");
+        }
+        validate(newFilm);
+        films.put(newFilm.getId(), newFilm);
+        return newFilm;
+    }
+
+    @GetMapping
+    public Collection<Film> findAll() {
+        return films.values();
+    }
+
+    private void validate(Film film) {
         if (film.getName() == null || film.getName().isBlank()) {
             log.warn("Ошибка валидации: пустое название фильма");
             throw new ValidationException("название не может быть пустым");
@@ -31,7 +54,7 @@ public class FilmController {
             throw new ValidationException("максимальная длина описания — 200 символов");
         }
 
-        if (film.getReleaseDate() == null || film.getReleaseDate().isBefore(LocalDate.of(1895, 12, 28))) {
+        if (film.getReleaseDate() == null || film.getReleaseDate().isBefore(MIN_RELEASE_DATE)) {
             log.warn("Ошибка валидации: фильм не подходит по дате релиза");
             throw new ValidationException("дата релиза — не раньше 28 декабря 1895 года");
         }
@@ -40,26 +63,5 @@ public class FilmController {
             log.warn("Ошибка валидации: продолжительность фильма не соответствует указанным требованиям");
             throw new ValidationException("продолжительность фильма должна быть положительным числом");
         }
-
-        film.setId(nextId++);
-        films.put(film.getId(), film);
-        return film;
-    }
-
-    @PutMapping
-    public Film update(@RequestBody Film newFilm) {
-        if (!films.containsKey(newFilm.getId())) {
-            log.warn("Ошибка валидации: такого фильма нет");
-            throw new ValidationException("Фильм с id=" + newFilm.getId() + " не найден");
-        }
-
-        films.put(newFilm.getId(), newFilm);
-        log.info("Фильм успешно обновлен");
-        return newFilm;
-    }
-
-    @GetMapping
-    public Collection<Film> findAll() {
-        return films.values();
     }
 }
