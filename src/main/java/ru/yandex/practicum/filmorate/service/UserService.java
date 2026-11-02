@@ -59,7 +59,7 @@ public class UserService {
                 .orElseThrow(() -> new NotFoundException("Такой пользователь не найден"));
         User other = userStorage.findById(otherId)
                 .orElseThrow(() -> new NotFoundException("Друг не найден"));
-        Set<Long> commonsId = user.getFriends();
+        Set<Long> commonsId = new HashSet<>(user.getFriends());
         commonsId.retainAll(other.getFriends());
         List<User> result = new ArrayList<>();
         for (Long id : commonsId) {
