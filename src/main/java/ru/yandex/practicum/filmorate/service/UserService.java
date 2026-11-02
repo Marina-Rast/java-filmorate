@@ -3,6 +3,7 @@ package ru.yandex.practicum.filmorate.service;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
+import ru.yandex.practicum.filmorate.exception.NotFoundException;
 import ru.yandex.practicum.filmorate.model.User;
 import ru.yandex.practicum.filmorate.storage.UserStorage;
 
@@ -19,7 +20,7 @@ public class UserService {
 
     public List<User> getFriends(long userId) {
         User user = userStorage.findById(userId)
-                .orElseThrow(() -> new RuntimeException("Пользователь не найден"));
+                .orElseThrow(() -> new NotFoundException("Пользователь не найден"));
 
         List<User> result = new ArrayList<>();
         for (Long friendId : user.getFriends()) {
@@ -31,9 +32,9 @@ public class UserService {
     public void addFriends(long userId, long friendId) {
         log.info("Пользователь {} добавляет в друзья {}", userId, friendId);
         User user = userStorage.findById(userId)
-                .orElseThrow(() -> new RuntimeException("Такой пользователь не найден"));
+                .orElseThrow(() -> new NotFoundException("Такой пользователь не найден"));
         User friend = userStorage.findById(friendId)
-                .orElseThrow(() -> new RuntimeException("Друг не найден"));
+                .orElseThrow(() -> new NotFoundException("Друг не найден"));
         user.getFriends().add(friendId);
         friend.getFriends().add(userId);
 
@@ -43,9 +44,9 @@ public class UserService {
 
     public void removeFriends(long usersId, long friendId) {
         User user = userStorage.findById(usersId)
-                .orElseThrow(() -> new RuntimeException("Такой пользователь не найден"));
+                .orElseThrow(() -> new NotFoundException("Такой пользователь не найден"));
         User friend = userStorage.findById(friendId)
-                .orElseThrow(() -> new RuntimeException("Друг не найден"));
+                .orElseThrow(() -> new NotFoundException("Друг не найден"));
         user.getFriends().remove(friendId);
         friend.getFriends().remove(usersId);
 
@@ -55,9 +56,9 @@ public class UserService {
 
     public List<User> getCommonFriends(long usersId, long otherId) {
         User user = userStorage.findById(usersId)
-                .orElseThrow(() -> new RuntimeException("Такой пользователь не найден"));
+                .orElseThrow(() -> new NotFoundException("Такой пользователь не найден"));
         User other = userStorage.findById(otherId)
-                .orElseThrow(() -> new RuntimeException("Друг не найден"));
+                .orElseThrow(() -> new NotFoundException("Друг не найден"));
         Set<Long> commonsId = user.getFriends();
         commonsId.retainAll(other.getFriends());
         List<User> result = new ArrayList<>();
