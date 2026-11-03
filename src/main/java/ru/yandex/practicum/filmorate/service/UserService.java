@@ -91,7 +91,7 @@ public class UserService {
                 .orElseThrow(() -> new NotFoundException("Пользователь с id " + id + " не найден"));
     }
 
-    public User update( User newUser) {
+    public User update(User newUser) {
         if (userStorage.findById(newUser.getId()).isEmpty()) {
             log.warn("Ошибка: пользователь с id = {} не найден", newUser.getId());
             throw new NotFoundException("Пользователь с id: " + newUser.getId() + " не найден");
@@ -104,7 +104,7 @@ public class UserService {
         return updated;
     }
 
-    public void delete( long id) {
+    public void delete(long id) {
         if (userStorage.findById(id).isEmpty()) {
             throw new NotFoundException("Пользователь с id " + id + " не найден");
         }
