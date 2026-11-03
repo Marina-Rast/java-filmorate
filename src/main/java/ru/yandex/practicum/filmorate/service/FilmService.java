@@ -6,6 +6,7 @@ import ru.yandex.practicum.filmorate.model.Film;
 import ru.yandex.practicum.filmorate.storage.FilmStorage;
 import ru.yandex.practicum.filmorate.storage.UserStorage;
 
+import java.util.Collection;
 import java.util.Comparator;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -45,5 +46,32 @@ public class FilmService {
                 .sorted(Comparator.comparingInt((Film f) -> f.getLikes().size()).reversed())
                 .limit(count)
                 .collect(Collectors.toList());
+    }
+
+    public Film addFilm(Film film) {
+        return filmStorage.addFilm(film);
+    }
+
+    public Film getFilmById(long id) {
+        return filmStorage.findById(id)
+                .orElseThrow(() -> new NotFoundException("Фильм с id " + id + " не найден"));
+    }
+
+    public Film update(Film newFilm) {
+        if (filmStorage.findById(newFilm.getId()).isEmpty()) {
+            throw new NotFoundException("Фильм не найден");
+        }
+        return filmStorage.update(newFilm);
+    }
+
+    public Collection<Film> findAll() {
+        return filmStorage.findAll();
+    }
+
+    public void delete(long id) {
+        if (filmStorage.findById(id).isEmpty()) {
+            throw new NotFoundException("Фильм не найден");
+        }
+        filmStorage.delete(id);
     }
 }

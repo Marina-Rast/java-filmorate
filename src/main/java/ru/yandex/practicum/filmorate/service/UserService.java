@@ -11,7 +11,7 @@ import java.util.*;
 
 @Service
 public class UserService {
-    private UserStorage userStorage;
+    private final UserStorage userStorage;
     private static final Logger log = LoggerFactory.getLogger(UserService.class);
 
     public UserService(UserStorage userStorage) {
@@ -68,7 +68,48 @@ public class UserService {
                 result.add(maybeFriend.get());
             }
         }
-
         return result;
     }
+
+    public User createUser(User user) {
+
+        if (user.getName() == null || user.getName().isBlank()) {
+            user.setName(user.getLogin());
+        }
+
+        User created = userStorage.createUsers(user);
+        log.info("Создан пользователь с id = {}", created.getId());
+        return created;
+    }
+
+    public Collection<User> findAll() {
+        return userStorage.findAll();
+    }
+
+    public User getUserById(long id) {
+        return userStorage.findById(id)
+                .orElseThrow(() -> new NotFoundException("Пользователь с id " + id + " не найден"));
+    }
+
+    public User update( User newUser) {
+        if (userStorage.findById(newUser.getId()).isEmpty()) {
+            log.warn("Ошибка: пользователь с id = {} не найден", newUser.getId());
+            throw new NotFoundException("Пользователь с id: " + newUser.getId() + " не найден");
+        }
+        if (newUser.getName() == null || newUser.getName().isBlank()) {
+            newUser.setName(newUser.getLogin());
+        }
+        User updated = userStorage.update(newUser);
+        log.info("Обновлён пользователь с id = {} ", updated.getId());
+        return updated;
+    }
+
+    public void delete( long id) {
+        if (userStorage.findById(id).isEmpty()) {
+            throw new NotFoundException("Пользователь с id " + id + " не найден");
+        }
+        userStorage.delete(id);
+        log.info("Удалён пользователь с id = {} ", id);
+    }
+
 }

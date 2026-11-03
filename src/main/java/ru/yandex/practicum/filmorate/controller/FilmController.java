@@ -3,11 +3,9 @@ package ru.yandex.practicum.filmorate.controller;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.web.bind.annotation.*;
-import ru.yandex.practicum.filmorate.exception.NotFoundException;
 import ru.yandex.practicum.filmorate.exception.ValidationException;
 import ru.yandex.practicum.filmorate.model.Film;
 import ru.yandex.practicum.filmorate.service.FilmService;
-import ru.yandex.practicum.filmorate.storage.FilmStorage;
 
 
 import java.time.LocalDate;
@@ -18,48 +16,39 @@ import java.util.List;
 @RequestMapping("/films")
 public class FilmController {
 
-    private final FilmStorage filmStorage;
     private final FilmService filmService;
     private static final Logger log = LoggerFactory.getLogger(FilmController.class);
     private static final LocalDate MIN_RELEASE_DATE = LocalDate.of(1895, 12, 28);
 
-    public FilmController(FilmStorage filmStorage, FilmService filmService) {
-        this.filmStorage = filmStorage;
+    public FilmController(FilmService filmService) {
         this.filmService = filmService;
     }
 
     @PostMapping
     public Film addFilm(@RequestBody Film film) {
         validate(film);
-        return filmStorage.addFilm(film);
+        return filmService.addFilm(film);
     }
 
     @GetMapping("/{id}")
     public Film getFilmById(@PathVariable long id) {
-        return filmStorage.findById(id)
-                .orElseThrow(() -> new NotFoundException("Фильм с id " + id + " не найден"));
+        return filmService.getFilmById(id);
     }
 
     @PutMapping
     public Film update(@RequestBody Film newFilm) {
-        if (filmStorage.findById(newFilm.getId()).isEmpty()) {
-            throw new NotFoundException("Фильм не найден");
-        }
         validate(newFilm);
-        return filmStorage.update(newFilm);
+        return filmService.update(newFilm);
     }
 
     @GetMapping
     public Collection<Film> findAll() {
-        return filmStorage.findAll();
+        return filmService.findAll();
     }
 
     @DeleteMapping("/{id}")
     public void delete(@PathVariable long id) {
-        if (filmStorage.findById(id).isEmpty()) {
-            throw new NotFoundException("Фильм не найден");
-        }
-        filmStorage.delete(id);
+        filmService.delete(id);
     }
 
     @PutMapping("/{id}/like/{userId}")
