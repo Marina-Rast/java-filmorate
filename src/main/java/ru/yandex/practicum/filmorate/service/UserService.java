@@ -23,7 +23,7 @@ public class UserService {
                 .orElseThrow(() -> new NotFoundException("Пользователь не найден"));
 
         List<User> result = new ArrayList<>();
-        for (Long friendId : user.getFriends()) {
+        for (Long friendId : user.getFriends().keySet()) {
             userStorage.findById(friendId).ifPresent(result::add);
         }
         return result;
@@ -35,8 +35,8 @@ public class UserService {
                 .orElseThrow(() -> new NotFoundException("Такой пользователь не найден"));
         User friend = userStorage.findById(friendId)
                 .orElseThrow(() -> new NotFoundException("Друг не найден"));
-        user.getFriends().add(friendId);
-        friend.getFriends().add(userId);
+        user.getFriends().put(friendId, User.FriendshipStatus.PENDING);
+        friend.getFriends().put(userId, User.FriendshipStatus.PENDING);
 
         userStorage.update(user);
         userStorage.update(friend);
@@ -59,8 +59,8 @@ public class UserService {
                 .orElseThrow(() -> new NotFoundException("Такой пользователь не найден"));
         User other = userStorage.findById(otherId)
                 .orElseThrow(() -> new NotFoundException("Друг не найден"));
-        Set<Long> commonsId = new HashSet<>(user.getFriends());
-        commonsId.retainAll(other.getFriends());
+        Set<Long> commonsId = new HashSet<>(user.getFriends().keySet());
+        commonsId.retainAll(other.getFriends().keySet());
         List<User> result = new ArrayList<>();
         for (Long id : commonsId) {
             Optional<User> maybeFriend = userStorage.findById(id);
@@ -92,13 +92,20 @@ public class UserService {
     }
 
     public User update(User newUser) {
-        if (userStorage.findById(newUser.getId()).isEmpty()) {
-            log.warn("Ошибка: пользователь с id = {} не найден", newUser.getId());
-            throw new NotFoundException("Пользователь с id: " + newUser.getId() + " не найден");
-        }
+        User oldUser = userStorage.findById(newUser.getId())
+                .orElseThrow(() -> {
+                    log.warn("Ошибка: пользователь с id = {} не найден", newUser.getId());
+                    return new NotFoundException("Пользователь с id: " + newUser.getId() + " не найден");
+                });
+
         if (newUser.getName() == null || newUser.getName().isBlank()) {
             newUser.setName(newUser.getLogin());
         }
+
+        if (newUser.getFriends() == null || newUser.getFriends().isEmpty()) {
+            newUser.setFriends(oldUser.getFriends());
+        }
+
         User updated = userStorage.update(newUser);
         log.info("Обновлён пользователь с id = {} ", updated.getId());
         return updated;

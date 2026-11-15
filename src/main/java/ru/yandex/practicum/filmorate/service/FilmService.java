@@ -58,9 +58,20 @@ public class FilmService {
     }
 
     public Film update(Film newFilm) {
-        if (filmStorage.findById(newFilm.getId()).isEmpty()) {
-            throw new NotFoundException("Фильм не найден");
+        Film oldFilm = filmStorage.findById(newFilm.getId())
+                .orElseThrow(() -> new NotFoundException("Фильм не найден"));
+        if (newFilm.getLikes() == null || newFilm.getLikes().isEmpty()) {
+            newFilm.setLikes(oldFilm.getLikes());
         }
+
+        if (newFilm.getGenres() == null || newFilm.getGenres().isEmpty()) {
+            newFilm.setGenres(oldFilm.getGenres());
+        }
+
+        if (newFilm.getMpa() == null) {
+            newFilm.setMpa(oldFilm.getMpa());
+        }
+
         return filmStorage.update(newFilm);
     }
 

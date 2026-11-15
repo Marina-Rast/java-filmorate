@@ -8,10 +8,29 @@ import java.util.Set;
 
 @Data
 public class Film {
+    public enum Mpa {
+        G,
+        PG,
+        PG_13,
+        R,
+        NC_17
+    }
+
+    public enum Genre {
+        COMEDY,
+        DRAMA,
+        CARTOON,
+        THRILLER,
+        DOCUMENTARY,
+        ACTION
+    }
+
     private Long id;
     private String name;
     private String description;
     private LocalDate releaseDate;
     private int duration;
     private Set<Long> likes = new HashSet<>();
+    private Set<Genre> genres = new HashSet<>();
+    private Mpa mpa;
 }
