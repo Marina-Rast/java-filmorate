@@ -21,6 +21,14 @@
     ```sql
     SELECT * 
     FROM users;
+
+  *   **Получение списка общих друзей с другим пользователем:**
+      ```sql
+      SELECT users
+      FROM users AS u
+      JOIN friendships AS f1 ON users.id = f1.friend_id
+      JOIN friendships AS f2 ON users.id = f2.friend_id
+      WHERE f1.user_id = 1 AND f2.user_id = 2;
     
 ## Основные моменты
 *   **Жанры фильма:** Так как у одного фильма может быть несколько жанров, я вынесла их в отдельную таблицу `genres` и связала с фильмами через `film_genres`. Это позволяет не дублировать информацию и хранить в каждой ячейке только одно значение.
