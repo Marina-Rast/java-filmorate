@@ -59,7 +59,8 @@ public class FilmService {
     }
 
     public Film addFilm(Film film) {
-        validateMpaAndGenres(film);return filmStorage.addFilm(film);
+        validateMpaAndGenres(film);
+        return filmStorage.addFilm(film);
     }
 
     public Film getFilmById(long id) {
