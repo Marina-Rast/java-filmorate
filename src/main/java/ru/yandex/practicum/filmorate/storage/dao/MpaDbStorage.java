@@ -18,7 +18,7 @@ public class MpaDbStorage {
         return new Mpa(rs.getInt("id"), rs.getString("name"));
     };
 
-    public List <Mpa> findAll() {
+    public List<Mpa> findAll() {
         String sql = "SELECT id, name FROM mpa_ratings ORDER BY id";
         return jdbc.query(sql, mpaRowMapper);
     }
