@@ -22,7 +22,7 @@ public class GenreDbStorage {
         return jdbc.query(sql, genreRowMapper);
     }
 
-    public Optional<Genre> findById(int id){
+    public Optional<Genre> findById(int id) {
         String sql = "SELECT id,name FROM genres WHERE ID = ?";
         return jdbc.query(sql, genreRowMapper,id).stream().findFirst();
     }
