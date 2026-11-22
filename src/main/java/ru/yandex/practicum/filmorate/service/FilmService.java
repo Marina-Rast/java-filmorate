@@ -4,14 +4,15 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 import ru.yandex.practicum.filmorate.exception.NotFoundException;
 import ru.yandex.practicum.filmorate.model.Film;
+import ru.yandex.practicum.filmorate.model.Genre;
 import ru.yandex.practicum.filmorate.storage.FilmStorage;
 import ru.yandex.practicum.filmorate.storage.UserStorage;
 import ru.yandex.practicum.filmorate.storage.dao.GenreDbStorage;
 import ru.yandex.practicum.filmorate.storage.dao.MpaDbStorage;
 
 import java.util.Collection;
-import java.util.Comparator;
 import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 @Service
@@ -52,10 +53,7 @@ public class FilmService {
     }
 
     public List<Film> getPopularFilms(int count) {
-        return filmStorage.findAll().stream()
-                .sorted(Comparator.comparingInt((Film f) -> f.getLikes().size()).reversed())
-                .limit(count)
-                .collect(Collectors.toList());
+        return filmStorage.getPopularFilms(count);
     }
 
     public Film addFilm(Film film) {
@@ -103,10 +101,13 @@ public class FilmService {
             mpaDbStorage.findById(film.getMpa().getId())
                     .orElseThrow(() -> new NotFoundException("Рейтинг MPA с id = " + film.getMpa().getId() + " не найден"));
         }
-        if (film.getGenres() != null) {
-            for (var genre : film.getGenres()) {
-                genreDbStorage.findById(genre.getId())
-                        .orElseThrow(() -> new NotFoundException("Жанр с id = " + genre.getId() + " не найден"));
+        if (film.getGenres() != null && !film.getGenres().isEmpty()) {
+            Set<Integer> genreIds = film.getGenres().stream()
+                    .map(Genre::getId)
+                    .collect(Collectors.toSet());
+            List<Genre> foundGenres = genreDbStorage.findByIds(genreIds);
+            if (foundGenres.size() != genreIds.size()) {
+                throw new NotFoundException("Один или несколько жанров не найдены");
             }
         }
     }

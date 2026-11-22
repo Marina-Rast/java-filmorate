@@ -37,7 +37,7 @@ public class UserDbStorage implements UserStorage {
     @Override
     public User createUsers(User user) {
         String sql = "INSERT INTO users (email, login, name, birthday) VALUES (?, ?, ?, ?)";
-        KeyHolder keyHolder = new GeneratedKeyHolder(); // Сюда база вернёт сгенерированный id
+        KeyHolder keyHolder = new GeneratedKeyHolder();
 
         jdbcTemplate.update(connection -> {
             PreparedStatement ps = connection.prepareStatement(sql, new String[]{"id"});
@@ -49,7 +49,6 @@ public class UserDbStorage implements UserStorage {
         }, keyHolder);
 
         user.setId(Objects.requireNonNull(keyHolder.getKey()).longValue());
-        saveFriends(user);
         return user;
     }
 
@@ -62,14 +61,13 @@ public class UserDbStorage implements UserStorage {
                 user.getName(),
                 user.getBirthday() != null ? Date.valueOf(user.getBirthday()) : null,
                 user.getId());
-        saveFriends(user);
         return user;
     }
 
     @Override
     public Collection<User> findAll() {
         List<User> users = jdbcTemplate.query("SELECT * FROM users", userRowMapper);
-        users.forEach(this::loadFriends); // Для каждого пользователя подгружаем его друзей
+        users.forEach(this::loadFriends);
         return users;
     }
 
@@ -87,25 +85,43 @@ public class UserDbStorage implements UserStorage {
         return user;
     }
 
-    private void loadFriends(User user) {
-        String sql = "SELECT friend_id, status FROM friendships WHERE user_id = ?";
-        Map<Long, User.FriendshipStatus> friends = new HashMap<>();
-        jdbcTemplate.query(sql, rs -> {
-            friends.put(
-                    rs.getLong("friend_id"),
-                    User.FriendshipStatus.valueOf(rs.getString("status"))
-            );
-        }, user.getId());
-        user.setFriends(friends);
+    @Override
+    public void addFriend(long userId, long friendId) {
+        String sql = "INSERT INTO friendships (user_id, friend_id) VALUES (?, ?)";
+        jdbcTemplate.update(sql, userId, friendId);
     }
 
-    private void saveFriends(User user) {
-        jdbcTemplate.update("DELETE FROM friendships WHERE user_id = ?", user.getId());
-        if (user.getFriends() != null) {
-            String sql = "INSERT INTO friendships (user_id, friend_id, status) VALUES (?, ?, ?)";
-            for (Map.Entry<Long, User.FriendshipStatus> entry : user.getFriends().entrySet()) {
-                jdbcTemplate.update(sql, user.getId(), entry.getKey(), entry.getValue().name());
-            }
-        }
+    @Override
+    public void removeFriend(long userId, long friendId) {
+        String sql = "DELETE FROM friendships WHERE user_id = ? AND friend_id = ?";
+        jdbcTemplate.update(sql, userId, friendId);
+    }
+
+    @Override
+    public List<User> getFriends(long userId) {
+        String sql = "SELECT u.* FROM users u " +
+                "JOIN friendships f ON u.id = f.friend_id " +
+                "WHERE f.user_id = ?";
+        List<User> friends = jdbcTemplate.query(sql, userRowMapper, userId);
+        friends.forEach(this::loadFriends);
+        return friends;
+    }
+
+    @Override
+    public List<User> getCommonFriends(long userId, long otherId) {
+        String sql = "SELECT u.* FROM users u " +
+                "JOIN friendships f1 ON u.id = f1.friend_id " +
+                "JOIN friendships f2 ON u.id = f2.friend_id " +
+                "WHERE f1.user_id = ? AND f2.user_id = ?";
+        List<User> commonFriends = jdbcTemplate.query(sql, userRowMapper, userId, otherId);
+        commonFriends.forEach(this::loadFriends);
+        return commonFriends;
+    }
+
+
+    private void loadFriends(User user) {
+        String sql = "SELECT friend_id FROM friendships WHERE user_id = ?";
+        List<Long> friendIds = jdbcTemplate.query(sql, (rs, rowNum) -> rs.getLong("friend_id"), user.getId());
+        user.setFriends(new HashSet<>(friendIds));
     }
 }

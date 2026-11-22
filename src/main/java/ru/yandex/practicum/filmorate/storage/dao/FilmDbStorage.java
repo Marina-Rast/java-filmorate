@@ -16,6 +16,8 @@ import java.sql.Date;
 import java.sql.PreparedStatement;
 import java.sql.Types;
 import java.util.*;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 @Repository
 @Qualifier("filmDbStorage")
@@ -84,7 +86,7 @@ public class FilmDbStorage implements FilmStorage {
     public Collection<Film> findAll() {
         String sql = "SELECT f.*, m.name AS mpa_name FROM films f LEFT JOIN mpa_ratings m ON f.mpa_id = m.id";
         List<Film> films = jdbc.query(sql, filmRowMapper);
-        films.forEach(this::loadGenresAndLikes);
+        loadGenresAndLikes(films);
         return films;
     }
 
@@ -101,19 +103,57 @@ public class FilmDbStorage implements FilmStorage {
         return film;
     }
 
-    private void loadGenresAndLikes(Film film) {
-        String genresSql = "SELECT g.id, g.name FROM genres g " +
-                "JOIN film_genres fg ON g.id = fg.genre_id WHERE fg.film_id = ? ORDER BY g.id";
-        List<Genre> genres = jdbc.query(genresSql,
-                (rs, rowNum) -> new Genre(rs.getInt("id"), rs.getString("name")),
-                film.getId());
-        film.setGenres(new LinkedHashSet<>(genres));
+    @Override
+    public List<Film> getPopularFilms(int count) {
+        String sql = "SELECT f.*, m.name AS mpa_name " +
+                "FROM films f " +
+                "LEFT JOIN mpa_ratings m ON f.mpa_id = m.id " +
+                "LEFT JOIN film_likes fl ON f.id = fl.film_id " +
+                "GROUP BY f.id, m.name " +
+                "ORDER BY COUNT(fl.user_id) DESC " +
+                "LIMIT ?";
+        List<Film> films = jdbc.query(sql, filmRowMapper, count);
+        loadGenresAndLikes(films);
+        return films;
+    }
 
-        String likesSql = "SELECT user_id FROM film_likes WHERE film_id = ?";
-        List<Long> likes = jdbc.query(likesSql,
-                (rs, rowNum) -> rs.getLong("user_id"),
-                film.getId());
-        film.setLikes(new HashSet<>(likes));
+    private void loadGenresAndLikes(Film film) {
+        loadGenresAndLikes(List.of(film));
+    }
+
+    private void loadGenresAndLikes(List<Film> films) {
+        if (films.isEmpty()) {
+            return;
+        }
+        Map<Long, Film> filmMap = films.stream()
+                .collect(Collectors.toMap(Film::getId, Function.identity()));
+
+        String placeholders = filmMap.keySet().stream()
+                .map(id -> "?")
+                .collect(Collectors.joining(", "));
+        Object[] ids = filmMap.keySet().toArray();
+
+        String genresSql = "SELECT fg.film_id, g.id, g.name " +
+                "FROM film_genres fg " +
+                "JOIN genres g ON fg.genre_id = g.id " +
+                "WHERE fg.film_id IN (" + placeholders + ") " +
+                "ORDER BY g.id";
+        jdbc.query(genresSql, rs -> {
+            Film film = filmMap.get(rs.getLong("film_id"));
+            if (film != null) {
+                film.getGenres().add(new Genre(rs.getInt("id"), rs.getString("name")));
+            }
+        }, ids);
+
+        String likesSql = "SELECT film_id, user_id " +
+                "FROM film_likes " +
+                "WHERE film_id IN (" + placeholders + ")";
+        jdbc.query(likesSql, rs -> {
+            Film film = filmMap.get(rs.getLong("film_id"));
+            if (film != null) {
+                film.getLikes().add(rs.getLong("user_id"));
+            }
+        }, ids);
     }
 
     private void saveGenresAndLikes(Film film) {

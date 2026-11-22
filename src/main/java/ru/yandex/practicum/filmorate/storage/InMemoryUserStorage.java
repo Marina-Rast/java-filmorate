@@ -5,10 +5,8 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 import ru.yandex.practicum.filmorate.model.User;
 
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
+import java.util.stream.Collectors;
 
 @Component
 public class InMemoryUserStorage implements UserStorage {
@@ -44,5 +42,47 @@ public class InMemoryUserStorage implements UserStorage {
     @Override
     public Optional<User> findById(long id) {
         return Optional.ofNullable(users.get(id));
+    }
+
+    @Override
+    public void addFriend(long userId, long friendId) {
+        User user = users.get(userId);
+        if (user != null) {
+            user.getFriends().add(friendId);
+        }
+    }
+
+    @Override
+    public void removeFriend(long userId, long friendId) {
+        User user = users.get(userId);
+        if (user != null) {
+            user.getFriends().remove(friendId);
+        }
+    }
+
+    @Override
+    public List<User> getFriends(long userId) {
+        User user = users.get(userId);
+        if (user == null) {
+            return List.of();
+        }
+        return user.getFriends().stream()
+                .map(users::get)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    public List<User> getCommonFriends(long userId, long otherId) {
+        User user = users.get(userId);
+        User other = users.get(otherId);
+        if (user == null || other == null) {
+            return List.of();
+        }
+        return user.getFriends().stream()
+                .filter(other.getFriends()::contains)
+                .map(users::get)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toList());
     }
 }
