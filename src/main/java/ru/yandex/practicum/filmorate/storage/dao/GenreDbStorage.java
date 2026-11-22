@@ -34,7 +34,7 @@ public class GenreDbStorage {
             return List.of();
         }
         String params = ids.stream()
-                .map(id->"?")
+                .map(id -> "?")
                 .collect(Collectors.joining(", "));
         String sql = "SELECT id, name FROM genres WHERE id IN (" + params + ")";
         return jdbc.query(sql, genreRowMapper, ids.toArray());
